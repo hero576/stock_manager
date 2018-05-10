@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="icon" href="/static/images/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/bootstrap-theme.min.css">
+    <script src="/static/js/jquery-3.1.1.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    <script src="/static/js/template-web.js"></script>
+    <title>股票查询</title>
+    <style type="text/css">
+        .table th, .table td {
+            text-align: center;
+            vertical-align: middle !important;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse"
+                    data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                <span class="sr-only">Toggle navigation</span>
+            </button>
+            <a class="navbar-brand" href="#"><b>Stock Display</b></a>
+        </div>
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+            <form class="navbar-form navbar-left bs-example bs-example-form" role="form" action="/api/v1.0"
+                  method="POST" style="width:60%">
+                <div class="input-group" style="margin-left: 5%;width:90%">
+                    <input type="text" class="form-control"
+                           style="display: inline;width: 80%;height: 25px;margin: 0 auto"
+                           name="storkcode" placeholder="Search">
+                    <input type="submit" class="btn btn-default" value="查询" style="margin-left: 2%" name="query"
+                           height="30px">
+                </div>
+            </form>
+        </div><!-- /.navbar-collapse -->
+    </nav>
+    <alert class="alert-warning" style="margin-left: 5%">
+    </alert>
+    <div class="result">
+    </div>
+    <div class="pagediv" style="width:100%;text-align: center">
+    </div>
+</div>
+</body>
+<script id="stockinfo" type="text/html">
+    {{ if result}}
+    <table class="table table-hover table-bordered" style="width: 90%;margin-left: 5%">
+        <caption><h3><strong>股票查询结果</strong></h3></caption>
+        <thead>
+        <tr>
+            <th> 股票名称</th>
+            <th> 股票代码</th>
+            <th> 当前价格</th>
+            <th> 涨 跌</th>
+            <th> 涨 跌( %)</th>
+            <th> 成交量(手)</th>
+            <th> 成交额(万)</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>{{ result.stock_name }} </td>
+            <td>{{ result.stock_no }} </td>
+            <td>{{ result.current_price }} </td>
+            <td>{{ result.fluctuation }} </td>
+            <td> {{ result.fluctuation_by_percent }} %</td>
+            <td>{{ result.volume }} </td>
+            <td>{{ result.turnover }} </td>
+        </tr>
+        </tbody>
+    </table>
+    {{/if}}
+</script>
+
+<script id="stockload" type="text/html">
+    {{ if stock_list }}
+    <table class="table table-hover table-bordered" style="width: 90%;margin-left: 5%">
+        <caption><h3><strong>股票查询结果</strong></h3></caption>
+        <thead>
+        <tr>
+            <th> 股票名称</th>
+            <th> 股票代码</th>
+            <th> 当前价格</th>
+            <th> 涨 跌</th>
+            <th> 涨 跌( %)</th>
+            <th> 成交量(手)</th>
+            <th> 成交额(万)</th>
+        </tr>
+        </thead>
+        <tbody>
+        {{ each stock_list }}
+        <tr>
+            <td>{{ $value.stock_name }} </td>
+            <td>{{ $value.stock_no }} </td>
+            <td>{{ $value.current_price }} </td>
+            <td>{{ $value.fluctuation }} </td>
+            <td> {{ $value.fluctuation_by_percent }} %</td>
+            <td>{{ $value.volume }} </td>
+            <td>{{ $value.turnover }} </td>
+        </tr>
+        {{ /each }}
+        </tbody>
+    </table>
+    {{/if}}
+</script>
+
+<script id="pagenator" type="text/html">
+    {{ if page_list }}
+    <nav aria-label="Page navigation" style="margin:0 auto ">
+        <ul class="pagination">
+            <li>
+                {{ if page_per }}
+                <a href="?p={{ page_per }}" aria-label="上一页">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+                {{ /if }}
+            </li>
+            {{ each page_list }}
+            <li><a href="?p={{ page_list[$index] }}">{{ page_list[$index] }}</a></li>
+            {{ /each }}
+            <li>
+                {{ if page_next }}
+                <a href="?p={{ page_list.next }}" aria-label="下一页">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+                {{ /if }}
+            </li>
+        </ul>
+    </nav>
+    {{ /if }}
+</script>
+
+<script>
+    $(".bs-example").submit(function (e) {
+        e.preventDefault();
+        var params = {
+            "id": $(".form-control").val()
+        };
+        $.ajax({
+            url: "/api/v1.0/",
+            type: "post",
+            contentType: "application/json",
+            data: JSON.stringify(params),
+            success: function (resp) {
+                if (resp.errno == "0") {
+                    // 输入框置为不可点击
+                    $(".alert-warning").html("");
+                    var data = {
+                        result: resp.result,
+                        num: 1
+                    };
+                    var html = template("stockinfo", data);
+                    $(".result").html(html);
+                } else {
+                    $(".alert-warning").html(resp.result)
+                }
+            }
+        })
+    })
+
+    $(function () {
+        var page=1;
+        var params = {
+            "page": page
+        };
+        $.ajax({
+            url: "/api/v1.0/",
+            type: "get",
+            contentType: "application/json",
+            data: JSON.stringify(params),
+            success: function (resp) {
+                if (resp.errno == "0") {
+                    $(".alert-warning").html("");
+                    var data = {
+                        stock_list: resp.result,
+                        page_list:resp.page_list,
+                        page_per:resp.page_per,
+                        page_next:resp.page_next
+                    };
+                    var content = template("stockload", data);
+                    var page_html = template("pagenator", data);
+                    $(".result").html(content);
+                    $(".pagediv").html(page_html);
+                } else {
+                    $(".alert-warning").html(resp.result)
+                }
+            }
+        })
+    })
+     function turnpage($this){
+        alert($this.text())
+    }
+</script>
+
+</html>
